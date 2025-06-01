@@ -13,7 +13,7 @@ namespace JobBoardAPI.Services
 
         public JobsService(DataContext dbContext)
         {
-            dbContext = _dbContext;
+            _dbContext = dbContext;
         }
 
 
@@ -67,12 +67,32 @@ namespace JobBoardAPI.Services
                     User = user
                 };
 
+                await _dbContext.Jobs.AddAsync(job);
+                await _dbContext.SaveChangesAsync();
+
                 return job;
             }
             catch (Exception)
             {
                 throw new Exception("Database error, please try again later.");
             }
+        }
+
+        public async Task DeleteJob(Guid jobId, Guid userId)
+        {
+            var job = await _dbContext.Jobs.FindAsync(jobId);
+            if (job == null)
+            {
+                throw new KeyNotFoundException("Job not found.");
+            }
+
+            if (job.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("You do not own this job.");
+            }
+
+            _dbContext.Jobs.Remove(job);
+            await _dbContext.SaveChangesAsync();
         }
     }
 }

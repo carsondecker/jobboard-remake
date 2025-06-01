@@ -8,5 +8,6 @@ namespace JobBoardAPI.Services
         public Task<List<Job>> GetJobs(string title);
         public Task<Job?> GetJob(Guid id);
         public Task<Job?> CreateJob(JobParams jobParams, Guid userId);
+        public Task DeleteJob(Guid jobId, Guid userId);
     }
 }

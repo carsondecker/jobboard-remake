@@ -1,14 +1,18 @@
 ﻿using JobBoardAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace JobBoardAPI.Controllers
 {
     public class JobParams
     {
-        public string Title = null!;
-        public string Description = null!;
-        public string City = null!;
+        [Required]
+        public string Title { get; set; } = null!;
+        [Required]
+        public string Description { get; set; } = null!;
+        [Required] 
+        public string City { get; set; } = null!;
     }
 
     [ApiController]
@@ -27,7 +31,17 @@ namespace JobBoardAPI.Controllers
         {
             try
             {
-                return Ok(await _jobsService.GetJobs(title));
+                var jobs = await _jobsService.GetJobs(title);
+                var trimmedJobs = jobs.Select(job => new
+                {
+                    jobId = job.JobId,
+                    title = job.Title,
+                    description = job.Description,
+                    city = job.City,
+                    userId = job.UserId
+                });
+
+                return Ok(trimmedJobs);
             }
             catch (Exception)
             {
@@ -36,12 +50,12 @@ namespace JobBoardAPI.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetJob([FromRoute] Guid id)
+        [HttpGet("{jobId}")]
+        public async Task<IActionResult> GetJob([FromRoute] Guid jobId)
         {
             try
             {
-                var job = await _jobsService.GetJob(id);
+                var job = await _jobsService.GetJob(jobId);
                 if (job == null)
                 {
                     return NotFound();
@@ -86,6 +100,41 @@ namespace JobBoardAPI.Controllers
                     city = job.City,
                     userId = job.UserId
                 });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { error = "A database error occured, please try again later." });
+            }
+        }
+
+
+        [Authorize]
+        [HttpDelete("{jobId}")]
+        public async Task<IActionResult> DeleteJob([FromRoute] Guid jobId)
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userIdStr == null)
+            {
+                return Unauthorized();
+            }
+
+            if (!Guid.TryParse(userIdStr, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                await _jobsService.DeleteJob(jobId, userId);
+                return Ok();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized("You do not own this job.");
             }
             catch (Exception)
             {

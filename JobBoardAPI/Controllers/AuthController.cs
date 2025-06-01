@@ -1,11 +1,12 @@
 ﻿using JobBoardAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace JobBoardAPI.Controllers
 {
-    public record LoginCredentials(string Username, string Password);
+    public record LoginCredentials([Required] string Username, [Required] string Password);
 
     [ApiController]
     [Route("/api/[controller]")]
